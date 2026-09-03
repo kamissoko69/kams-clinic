@@ -1,39 +1,45 @@
-CREATE TABLE IF NOT EXISTS users (
+-- Extension pour UUID si besoin
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Table des Utilisateurs
+CREATE TABLE users (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    email VARCHAR(150) UNIQUE NOT NULL,
-    role VARCHAR(20) DEFAULT 'user',
+    full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(20) CHECK (role IN ('patient', 'doctor', 'admin')) DEFAULT 'patient',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS products (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(150) NOT NULL,
-    description TEXT,
-    price DECIMAL(10, 2) NOT NULL,
-    stock INT DEFAULT 0,
-    image_url TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS orders (
+-- Table des Médecins
+CREATE TABLE doctors (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
-    total_price DECIMAL(10, 2) NOT NULL,
-    status VARCHAR(50) DEFAULT 'pending',
+    specialty VARCHAR(100) NOT NULL,
+    consultation_fee DECIMAL(10,2) NOT NULL,
+    available_days VARCHAR(100) DEFAULT 'Mon,Tue,Wed,Thu,Fri'
+);
+
+-- Table des Rendez-vous
+CREATE TABLE appointments (
+    id SERIAL PRIMARY KEY,
+    patient_id INT REFERENCES users(id) ON DELETE CASCADE,
+    doctor_id INT REFERENCES doctors(id) ON DELETE CASCADE,
+    appointment_date TIMESTAMP NOT NULL,
+    reason TEXT NOT NULL,
+    status VARCHAR(20) CHECK (status IN ('pending', 'confirmed', 'cancelled', 'completed')) DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS order_items (
-    id SERIAL PRIMARY KEY,
-    order_id INT REFERENCES orders(id) ON DELETE CASCADE,
-    product_id INT REFERENCES products(id) ON DELETE CASCADE,
-    quantity INT NOT NULL,
-    unit_price DECIMAL(10, 2) NOT NULL
-);
+-- Données de test
+INSERT INTO users (full_name, email, password_hash, role) VALUES
+('Dr. Aminata Diallo', 'a.diallo@kamsclinic.com', '$2b$10$SampleHashDoctor1', 'doctor'),
+('Dr. Jean Dupont', 'j.dupont@kamsclinic.com', '$2b$10$SampleHashDoctor2', 'doctor'),
+('Moussa Traoré', 'moussa@gmail.com', '$2b$10$SampleHashPatient', 'patient');
 
--- Insertion de données de test
-INSERT INTO users (name, email, role) VALUES ('Admin KAMS', 'admin@kams.shop', 'admin');
-INSERT INTO products (name, description, price, stock, image_url) VALUES 
-('PC Portable Pro', '16GB RAM, 512GB SSD', 899.99, 10, 'https://via.placeholder.com/150'),
-('Souris Sans Fil', 'Ergonomique', 25.50, 50, 'https://via.placeholder.com/150');
+INSERT INTO doctors (user_id, specialty, consultation_fee) VALUES
+(1, 'Cardiologie', 25000.00),
+(2, 'Médecine Générale', 15000.00);
+
+INSERT INTO appointments (patient_id, doctor_id, appointment_date, reason, status) VALUES
+(3, 1, '2026-09-10 10:00:00', 'Consultation de suivi cardiaque', 'confirmed');

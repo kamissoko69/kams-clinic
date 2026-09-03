@@ -1,52 +1,60 @@
 version: '3.8'
 
-services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: kams-shop-db
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - kams_shop_db_data:/var/lib/postgresql/data
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - kams_shop_network
-    restart: always
-
-  backend:
-    build: ./backend
-    container_name: kams-shop-backend
-    ports:
-      - "5000:5000"
-    environment:
-      - DB_HOST=${POSTGRES_HOST}
-      - DB_USER=${POSTGRES_USER}
-      - DB_PASSWORD=${POSTGRES_PASSWORD}
-      - DB_NAME=${POSTGRES_DB}
-      - DB_PORT=${POSTGRES_PORT}
-      - PORT=${PORT}
-    depends_on:
-      - postgres
-    networks:
-      - kams_shop_network
-    restart: always
-
-  frontend:
-    build: ./frontend
-    container_name: kams-shop-frontend
-    ports:
-      - "5173:5173"
-    depends_on:
-      - backend
-    networks:
-      - kams_shop_network
-    restart: always
-
 networks:
-  kams_shop_network:
+  kams_clinic_network:
     driver: bridge
 
 volumes:
-  kams_shop_db_data:
+  kams_clinic_db_data:
+
+services:
+  kams-clinic-db:
+    image: postgres:15-alpine
+    container_name: kams-clinic-db
+    environment:
+      POSTGRES_USER: kams_admin
+      POSTGRES_PASSWORD: kams_secure_pass
+      POSTGRES_DB: kams_clinic_db
+    volumes:
+      - kams_clinic_db_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - kams_clinic_network
+    restart: always
+
+  kams-clinic-backend:
+    build: ./backend
+    container_name: kams-clinic-backend
+    environment:
+      DB_HOST: kams-clinic-db
+      DB_USER: kams_admin
+      DB_PASSWORD: kams_secure_pass
+      DB_NAME: kams_clinic_db
+      DB_PORT: 5432
+      PORT: 5000
+    depends_on:
+      - kams-clinic-db
+    networks:
+      - kams_clinic_network
+    restart: always
+
+  kams-clinic-frontend:
+    build: ./frontend
+    container_name: kams-clinic-frontend
+    networks:
+      - kams_clinic_network
+    restart: always
+
+  kams-clinic-nginx:
+    image: nginx:alpine
+    container_name: kams-clinic-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - kams-clinic-frontend
+      - kams-clinic-backend
+    networks:
+      - kams_clinic_network
+    restart: always
