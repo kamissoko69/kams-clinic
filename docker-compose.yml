@@ -1,4 +1,29 @@
-kams-clinic-frontend:
+services:
+  kams-clinic-db:
+    image: postgres:15-alpine
+    container_name: kams-clinic-db
+    environment:
+      POSTGRES_USER: kams_user
+      POSTGRES_PASSWORD: kams_password
+      POSTGRES_DB: kams_clinic
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: always
+
+  kams-clinic-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: kams-clinic-backend
+    environment:
+      PORT: 5000
+      DATABASE_URL: postgres://kams_user:kams_password@kams-clinic-db:5432/kams-clinic
+    depends_on:
+      - kams-clinic-db
+    restart: always
+
+  kams-clinic-frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -6,3 +31,18 @@ kams-clinic-frontend:
     ports:
       - "80"
     restart: always
+
+  kams-clinic-nginx:
+    image: nginx:alpine
+    container_name: kams-clinic-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - kams-clinic-frontend
+      - kams-clinic-backend
+    restart: always
+
+volumes:
+  postgres_data:
