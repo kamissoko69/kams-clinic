@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS doctors (
     id SERIAL PRIMARY KEY,
-    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    user_id INT UNIQUE REFERENCES users(id) ON DELETE CASCADE,
     specialty VARCHAR(100) NOT NULL,
     consultation_fee DECIMAL(10, 2) NOT NULL,
     available_days VARCHAR(100) DEFAULT 'Mon,Tue,Wed,Thu,Fri'
@@ -34,11 +34,11 @@ ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO doctors (user_id, specialty, consultation_fee)
 SELECT id, 'Cardiologie', 25000.00 FROM users WHERE email = 'a.diallo@kamsclinic.com'
-ON CONFLICT DO NOTHING;
+ON CONFLICT (user_id) DO NOTHING;
 
 INSERT INTO doctors (user_id, specialty, consultation_fee)
 SELECT id, 'Médecine Générale', 15000.00 FROM users WHERE email = 'j.dupont@kamsclinic.com'
-ON CONFLICT DO NOTHING;
+ON CONFLICT (user_id) DO NOTHING;
 
 INSERT INTO appointments (patient_id, doctor_id, appointment_date, reason, status)
 SELECT 
@@ -47,4 +47,4 @@ SELECT
     NOW() + INTERVAL '1 day',
     'Consultation de suivi cardiaque',
     'confirmed'
-ON CONFLICT DO NOTHING;
+WHERE EXISTS (SELECT 1 FROM users WHERE email = 'moussa@gmail.com');
