@@ -3,9 +3,9 @@ services:
     image: postgres:15-alpine
     container_name: kams-clinic-db
     environment:
-      POSTGRES_USER: kams_user
-      POSTGRES_PASSWORD: kams_password
-      POSTGRES_DB: kams_clinic
+      POSTGRES_USER: kams_admin
+      POSTGRES_PASSWORD: kams_secure_pass
+      POSTGRES_DB: kams_clinic_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -18,7 +18,11 @@ services:
     container_name: kams-clinic-backend
     environment:
       PORT: 5000
-      DATABASE_URL: postgres://kams_user:kams_password@kams-clinic-db:5432/kams-clinic
+      DB_HOST: kams-clinic-db
+      DB_USER: kams_admin
+      DB_PASSWORD: kams_secure_pass
+      DB_NAME: kams_clinic_db
+      DB_PORT: 5432
     depends_on:
       - kams-clinic-db
     restart: always

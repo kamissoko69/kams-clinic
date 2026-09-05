@@ -1,8 +1,8 @@
--- Extension pour UUID si besoin
+-- Extension pour UUID
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Table des Utilisateurs
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     full_name VARCHAR(100) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE users (
 );
 
 -- Table des Médecins
-CREATE TABLE doctors (
+CREATE TABLE IF NOT EXISTS doctors (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
     specialty VARCHAR(100) NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE doctors (
 );
 
 -- Table des Rendez-vous
-CREATE TABLE appointments (
+CREATE TABLE IF NOT EXISTS appointments (
     id SERIAL PRIMARY KEY,
     patient_id INT REFERENCES users(id) ON DELETE CASCADE,
     doctor_id INT REFERENCES doctors(id) ON DELETE CASCADE,
@@ -35,11 +35,22 @@ CREATE TABLE appointments (
 INSERT INTO users (full_name, email, password_hash, role) VALUES
 ('Dr. Aminata Diallo', 'a.diallo@kamsclinic.com', '$2b$10$SampleHashDoctor1', 'doctor'),
 ('Dr. Jean Dupont', 'j.dupont@kamsclinic.com', '$2b$10$SampleHashDoctor2', 'doctor'),
-('Moussa Traoré', 'moussa@gmail.com', '$2b$10$SampleHashPatient', 'patient');
+('Moussa Traoré', 'moussa@gmail.com', '$2b$10$SampleHashPatient', 'patient')
+ON CONFLICT (email) DO NOTHING;
 
-INSERT INTO doctors (user_id, specialty, consultation_fee) VALUES
-(1, 'Cardiologie', 25000.00),
-(2, 'Médecine Générale', 15000.00);
+INSERT INTO doctors (user_id, specialty, consultation_fee)
+SELECT id, 'Cardiologie', 25000.00 FROM users WHERE email = 'a.diallo@kamsclinic.com'
+ON CONFLICT DO NOTHING;
 
-INSERT INTO appointments (patient_id, doctor_id, appointment_date, reason, status) VALUES
-(3, 1, '2026-09-10 10:00:00', 'Consultation de suivi cardiaque', 'confirmed');
+INSERT INTO doctors (user_id, specialty, consultation_fee)
+SELECT id, 'Médecine Générale', 15000.00 FROM users WHERE email = 'j.dupont@kamsclinic.com'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO appointments (patient_id, doctor_id, appointment_date, reason, status)
+SELECT 
+    (SELECT id FROM users WHERE email = 'moussa@gmail.com'),
+    (SELECT id FROM doctors WHERE user_id = (SELECT id FROM users WHERE email = 'a.diallo@kamsclinic.com')),
+    '2026-09-10 10:00:00',
+    'Consultation de suivi cardiaque',
+    'confirmed'
+ON CONFLICT DO NOTHING;
